@@ -220,7 +220,7 @@ function Keychain({ backupPath, password, backButton, onDecrypted }: KeychainPro
         {
           path: backupPath,
           password: password,
-          items: JSON.stringify(updatedItems),
+          items: JSON.stringify(pendingUpdates()),
           deletedItems: JSON.stringify(deletedItems),
         },
         { responseType: 'blob' },
@@ -245,11 +245,15 @@ function Keychain({ backupPath, password, backButton, onDecrypted }: KeychainPro
     setDeletedItems([]);
   }
 
+  function pendingUpdates() {
+    return updatedItems.filter(item => !deletedItems.includes(item.persistref));
+  }
+
   function downloadButtonDisabled() {
     if (keychainEncrypting) {
       return true;
     }
-    return updatedItems.length === 0 && deletedItems.length === 0;
+    return pendingUpdates().length === 0 && deletedItems.length === 0;
   }
 
   function saveButtonDisabled() {
@@ -289,7 +293,7 @@ function Keychain({ backupPath, password, backButton, onDecrypted }: KeychainPro
         {data && (
           <form className="form-inline">
             <span className="px-2">
-              {updatedItems.length} item{updatedItems.length !== 1 && 's'} edited, {deletedItems.length} deleted{keychainEncrypting && ' (encrypting…)'}
+              {pendingUpdates().length} item{pendingUpdates().length !== 1 && 's'} edited, {deletedItems.length} deleted{keychainEncrypting && ' (encrypting…)'}
             </span>
             {undecryptableRefs.length > 0 && (
               <>
