@@ -56,3 +56,17 @@ table td {
 table th:last-child {
   width: 62px;
 }
+
+.non-editable {
+  clear: both;
+  margin-top: 30px;
+}
+
+.non-editable table th:last-child {
+  width: 90px;
+}
+
+.non-editable tr.deleted td:not(:last-child) {
+  text-decoration: line-through;
+  opacity: 0.5;
+}

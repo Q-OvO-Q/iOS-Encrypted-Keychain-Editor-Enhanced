@@ -69,11 +69,17 @@ export interface KeychainItem extends Record<string, string | number | undefined
   wrap?: number;
 }
 
+export type UndecryptableKeychainItem = {
+  persistref: string;
+  protectionClass?: string;
+};
+
 export type KeychainType = 'cert' | 'genp' | 'inet' | 'keys';
 
 type Keychain = {
   [type in KeychainType]: {
     items: KeychainItem[];
+    undecryptable: UndecryptableKeychainItem[];
     total: number;
   };
 };
@@ -95,6 +101,7 @@ type KeychainProps = {
 function Keychain({ backupPath, password, backButton, onDecrypted }: KeychainProps): ReactElement {
   const [data, setData] = useState<Keychain>();
   const [updatedItems, setUpdatedItems] = useState<KeychainItem[]>([]);
+  const [deletedItems, setDeletedItems] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [modalIsOpen, setIsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -185,6 +192,14 @@ function Keychain({ backupPath, password, backButton, onDecrypted }: KeychainPro
     setIsOpen(false);
   }
 
+  function markDeleted(persistrefs: string[], deleted: boolean) {
+    setDeletedItems(deletedItems => {
+      const newDeletedItems = new Set(deletedItems);
+      persistrefs.forEach(persistref => (deleted ? newDeletedItems.add(persistref) : newDeletedItems.delete(persistref)));
+      return Array.from(newDeletedItems);
+    });
+  }
+
   function _downloadFile(binaryData: string) {
     const href = window.URL.createObjectURL(new Blob([binaryData]));
     const link = document.createElement('a');
@@ -206,6 +221,7 @@ function Keychain({ backupPath, password, backButton, onDecrypted }: KeychainPro
           path: backupPath,
           password: password,
           items: JSON.stringify(updatedItems),
+          deletedItems: JSON.stringify(deletedItems),
         },
         { responseType: 'blob' },
       );
@@ -226,18 +242,22 @@ function Keychain({ backupPath, password, backButton, onDecrypted }: KeychainPro
 
   function discardChanges() {
     setUpdatedItems([]);
+    setDeletedItems([]);
   }
 
   function downloadButtonDisabled() {
     if (keychainEncrypting) {
       return true;
     }
-    return updatedItems.length === 0;
+    return updatedItems.length === 0 && deletedItems.length === 0;
   }
 
   function saveButtonDisabled() {
     return !keychainEdited;
   }
+
+  const undecryptableRefs = data ? Object.keys(keychainTypesMap).flatMap(type => data[type as KeychainType].undecryptable.map(item => item.persistref)) : [];
+  const remainingUndecryptable = undecryptableRefs.filter(persistref => !deletedItems.includes(persistref)).length;
 
   return (
     <>
@@ -269,9 +289,17 @@ function Keychain({ backupPath, password, backButton, onDecrypted }: KeychainPro
         {data && (
           <form className="form-inline">
             <span className="px-2">
-              {updatedItems.length} item{updatedItems.length !== 1 && 's'} edited{keychainEncrypting && ' (encrypting…)'}
+              {updatedItems.length} item{updatedItems.length !== 1 && 's'} edited, {deletedItems.length} deleted{keychainEncrypting && ' (encrypting…)'}
             </span>
-            {updatedItems.length > 0 && (
+            {undecryptableRefs.length > 0 && (
+              <>
+                <button onClick={() => markDeleted(undecryptableRefs, true)} type="button" className="btn btn-outline-danger" disabled={remainingUndecryptable === 0}>
+                  Delete All Non-Editable ({remainingUndecryptable})
+                </button>
+                &nbsp;
+              </>
+            )}
+            {(updatedItems.length > 0 || deletedItems.length > 0) && (
               <button onClick={discardChanges} type="button" className="btn btn-danger">
                 Discard Changes
               </button>
@@ -306,7 +334,15 @@ function Keychain({ backupPath, password, backButton, onDecrypted }: KeychainPro
             <div className="tab-content">
               {Object.keys(keychainTypesMap).map((type, index) => (
                 <div key={type} className={'tab-pane fade' + (index === 0 ? ' show active' : '')} id={type}>
-                  <Table key={type} data={Array.from(data[type as KeychainType].items)} count={data[type as KeychainType].total} openModal={openModal} />
+                  <Table
+                    key={type}
+                    data={Array.from(data[type as KeychainType].items)}
+                    count={data[type as KeychainType].total}
+                    undecryptable={data[type as KeychainType].undecryptable}
+                    deletedItems={deletedItems}
+                    markDeleted={markDeleted}
+                    openModal={openModal}
+                  />
                 </div>
               ))}
             </div>
