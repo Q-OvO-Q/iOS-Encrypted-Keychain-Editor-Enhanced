@@ -43,11 +43,13 @@ function Table({ data, count, undecryptable, deletedItems, markDeleted, openModa
   const undecryptableRefs = undecryptable.map(item => item.persistref);
   const remainingCount = undecryptableRefs.filter(persistref => !deleted.has(persistref)).length;
   const deletedCount = undecryptable.length - remainingCount;
+  const deletedEditableCount = data.filter(item => deleted.has(item.persistref)).length;
 
   return (
     <>
       <span className="editable-count px-2">
         {data.length} editable out of {count}
+        {deletedEditableCount > 0 && <span className="text-danger"> – {deletedEditableCount} marked for deletion</span>}
         {undecryptable.length > 0 && (
           <button onClick={() => markDeleted(undecryptableRefs, true)} type="button" className="btn btn-outline-danger btn-sm ms-2" disabled={remainingCount === 0}>
             Delete Non-Editable ({remainingCount})
@@ -69,14 +71,20 @@ function Table({ data, count, undecryptable, deletedItems, markDeleted, openModa
         <tbody {...getTableBodyProps()}>
           {rows.map((row, index) => {
             prepareRow(row);
+            const item = data[index];
+            const isDeleted = deleted.has(item.persistref);
             return (
-              <tr {...row.getRowProps()}>
+              <tr {...row.getRowProps()} className={isDeleted ? 'deleted' : ''}>
                 {row.cells.map(cell => {
                   return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>;
                 })}
                 <td align="right">
-                  <button onClick={() => openModal(data[index])} type="button" className="btn btn-primary">
+                  <button onClick={() => openModal(item)} type="button" className="btn btn-primary" disabled={isDeleted}>
                     Edit
+                  </button>
+                  &nbsp;
+                  <button onClick={() => markDeleted([item.persistref], !isDeleted)} type="button" className={'btn ' + (isDeleted ? 'btn-secondary' : 'btn-danger')}>
+                    {isDeleted ? 'Undo' : 'Delete'}
                   </button>
                 </td>
               </tr>

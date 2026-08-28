@@ -8,7 +8,7 @@ Allows editing of the iOS keychain without a jailbreak by updating the `keychain
 
 This repository is a basic React frontend for [irestore](https://github.com/dnicolson/node-irestore) with a simple Node.js backend to stitch together various Keychain pieces. It’s beyond the scope of this project to rebuild and transfer a full backup in the browser. The intended output is an updated encrypted `keychain-backup.plist`, which you can insert back into a backup with `irestore`.
 
-Not all Keychain items are editable as `ThisDeviceOnly` items are only able to be decrypted with the hardware `0x835` key which is unique to each device. These items can be deleted instead, either individually or with a single click via the “Delete All Non-Editable” button, which removes them from the downloaded `keychain-backup.plist` while leaving the backup itself untouched.
+Not all Keychain items are editable as `ThisDeviceOnly` items are only able to be decrypted with the hardware `0x835` key which is unique to each device. Every item can however be deleted: editable ones from their row in the table, non-editable ones individually, per type or all at once with the “Delete All Non-Editable” button. Deleted items are removed from the downloaded `keychain-backup.plist`, the backup itself is left untouched.
 
 This technique was originally developed to allow [signing in to Feedly](https://gist.github.com/dnicolson/73c9f7359db9f61b3621a1e4918aa136) with Reeder 4 on older iOS devices.
 
@@ -22,7 +22,7 @@ This technique was originally developed to allow [signing in to Feedly](https://
 ## Editing a Keychain
 1. Create an encrypted backup with iTunes/Finder or iMazing
 2. Enter the absolute path and password into iOS Keychain Backup Editor
-3. Make edits to the Keychain and/or delete `ThisDeviceOnly` items
+3. Make edits to the Keychain and/or delete items
 4. Click "Download Keychain Backup"
 5. Run:
 
